@@ -13,11 +13,12 @@ import {
   NOTE_NODE_MIN_WIDTH,
 } from "@/constants/constants";
 import { useGetBuildsQuery } from "@/controllers/API/queries/_builds";
+import { fetchAndCreateFlow } from "@/controllers/API/queries/flows/use-fetch-and-create-flow";
 import CustomLoader from "@/customization/components/custom-loader";
 import { track } from "@/customization/utils/analytics";
 import useAutoSaveFlow from "@/hooks/flows/use-autosave-flow";
 import useUploadFlow from "@/hooks/flows/use-upload-flow";
-import { useAddComponent } from "@/hooks/use-add-component";
+import { useAddComponent } from "@/hooks/useAddComponent";
 import { nodeColorsName } from "@/utils/styleUtils";
 import { cn, isSupportedNodeTypes } from "@/utils/utils";
 import {
@@ -542,6 +543,17 @@ export default function Page({
 
   const componentsToUpdate = useFlowStore((state) => state.componentsToUpdate);
 
+  const handleTestButtonClick = async () => {
+    const testFlowId = "test-flow-id"; // Replace with a valid flow ID for testing
+    try {
+      await fetchAndCreateFlow(testFlowId);
+      alert("Flow fetched and rendered successfully!");
+    } catch (error) {
+      console.error("Error fetching and rendering flow:", error);
+      alert("Failed to fetch and render flow. Check the console for details.");
+    }
+  };
+
   return (
     <div className="h-full w-full bg-canvas" ref={reactFlowWrapper}>
       {showCanvas ? (
@@ -650,6 +662,24 @@ export default function Page({
               display: "none",
             }}
           ></div>
+          {/* Test Button */}
+          <button
+            onClick={handleTestButtonClick}
+            style={{
+              position: "absolute",
+              bottom: "20px",
+              right: "20px",
+              padding: "10px 20px",
+              backgroundColor: "#007bff",
+              color: "#fff",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+              boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            Test Fetch Flow
+          </button>
         </div>
       ) : (
         <div className="flex h-full w-full items-center justify-center">

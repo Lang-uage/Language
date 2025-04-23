@@ -1,4 +1,5 @@
 import { useMutationFunctionType } from "@/types/api";
+import axios from "axios";
 import { FlowType } from "@/types/flow";
 import { processFlows } from "@/utils/reactflowUtils";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,6 +10,23 @@ import { UseRequestProcessor } from "../../services/request-processor";
 interface IGetFlow {
   id: string;
   public?: boolean;
+}
+
+export async function fetchFlowFromBackend(flowId: string): Promise<{ nodes: Array<Node>; edges: Array<Edge> }> {
+  try {
+    alert("Fetching flow from backend..Hitting the backend API");
+    const response = await axios.get(`http://127.0.0.1:8000/api/flows`);
+    if (response.status !== 200) {
+      alert("Error fetching flow from backend");
+      throw new Error(`Failed to fetch flow: ${response.statusText}`);
+    }
+    alert("Flow fetched successfully");
+    console.log("Fetched flow data:", response.data);
+    return response.data; // Assuming the backend returns { nodes, edges }
+  } catch (error) {
+    console.error("Error fetching flow from backend:", error);
+    throw error;
+  }
 }
 
 // add types for error handling and success
