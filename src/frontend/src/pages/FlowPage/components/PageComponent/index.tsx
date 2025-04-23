@@ -139,6 +139,8 @@ export default function Page({
   const shadowBoxHeight = NOTE_NODE_MIN_HEIGHT * (zoomLevel || 1);
   const shadowBoxBackgroundColor = COLOR_OPTIONS[Object.keys(COLOR_OPTIONS)[0]];
 
+  const [userUseCase, setUserUseCase] = useState("");
+
   function handleGroupNode() {
     takeSnapshot();
     if (validateSelection(lastSelection!, edges).length === 0) {
@@ -546,8 +548,11 @@ export default function Page({
   const handleTestButtonClick = async () => {
     const testFlowId = "test-flow-id"; // Replace with a valid flow ID for testing
     try {
-      await fetchAndCreateFlow(testFlowId);
+      // Pass the user use case to the fetchAndCreateFlow function
+      await fetchAndCreateFlow(testFlowId, userUseCase);
       alert("Flow fetched and rendered successfully!");
+      // Clear the input after successful fetch
+      setUserUseCase("");
     } catch (error) {
       console.error("Error fetching and rendering flow:", error);
       alert("Failed to fetch and render flow. Check the console for details.");
@@ -662,24 +667,63 @@ export default function Page({
               display: "none",
             }}
           ></div>
-          {/* Test Button */}
-          <button
-            onClick={handleTestButtonClick}
+          {/* Chat Input and Test Button Container */}
+          <div
             style={{
               position: "absolute",
               bottom: "20px",
               right: "20px",
-              padding: "10px 20px",
-              backgroundColor: "#007bff",
-              color: "#fff",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-              boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: "10px",
+              maxWidth: "300px",
+              width: "100%"
             }}
           >
-            Test Fetch Flow
-          </button>
+            <div
+              style={{
+                width: "100%",
+                backgroundColor: "#fff",
+                borderRadius: "5px",
+                boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+                overflow: "hidden"
+              }}
+            >
+              <textarea
+                value={userUseCase}
+                onChange={(e) => setUserUseCase(e.target.value)}
+                placeholder="Describe your use case here..."
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "none",
+                  borderBottom: "1px solid #e0e0e0",
+                  resize: "vertical",
+                  minHeight: "80px",
+                  fontFamily: "inherit",
+                  fontSize: "14px",
+                  color: "#666666"
+                }}
+                data-testid="use-case-input"
+              />
+            </div>
+            <button
+              onClick={handleTestButtonClick}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: "#007bff",
+                color: "#fff",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
+                width: "100%"
+              }}
+            >
+              Test Fetch Flow
+            </button>
+          </div>
         </div>
       ) : (
         <div className="flex h-full w-full items-center justify-center">
