@@ -22,6 +22,7 @@ export const getLayoutedNodes = async (
   nodes: AllNodeType[],
   edges: EdgeType[],
 ): Promise<AllNodeType[]> => {
+  console.log("Nodes before layout:", nodes);
   const graph = {
     id: "root",
     layoutOptions,

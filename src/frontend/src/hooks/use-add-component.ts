@@ -61,6 +61,7 @@ export function useAddComponent() {
           id: newId,
         },
       };
+      console.log("New node structure:", newNode);
 
       paste({ nodes: [newNode], edges: [] }, pos);
     },

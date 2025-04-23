@@ -374,6 +374,7 @@ const useFlowStore = create<FlowStoreType>((set, get) => ({
     track("Component Connection Deleted", { edgeId });
   },
   paste: (selection, position) => {
+    console.log("Pasting nodes and edges:", selection, "at position:", position);
     if (
       selection.nodes.some((node) => node.data.type === "ChatInput") &&
       checkChatInput(get().nodes)

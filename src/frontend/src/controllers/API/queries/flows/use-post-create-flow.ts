@@ -9,6 +9,8 @@ export async function createFlowFromJson(flowJson: {
 }): Promise<void> {
   const { nodes, edges } = flowJson;
   const templates = useTypesStore.getState().templates;
+  const openAITemplates = Object.keys(templates).filter(key => key.toLowerCase().includes("openai"));
+  console.log("Templates with 'OpenAI' in the name:", openAITemplates.map(key => ({ key, template: templates[key] })));
   
   // Convert simple node types to match template keys (more flexible lookup)
   const getTemplateKey = (nodeType: string): string => {
