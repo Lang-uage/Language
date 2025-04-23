@@ -1,10 +1,10 @@
 import { fetchFlowFromBackend } from "@/controllers/API/queries/flows/use-get-flow";
 import { createFlowFromJson } from "@/controllers/API/queries/flows/use-post-create-flow";
 
-export async function fetchAndCreateFlow(flowId: string): Promise<void> {
+export async function fetchAndCreateFlow(flowId: string, useCase?: string): Promise<void> {
   try {
     // Fetch the flow JSON from the backend
-    const flowJson = await fetchFlowFromBackend(flowId);
+    const flowJson = await fetchFlowFromBackend(flowId, useCase);
     console.log("Fetched flow JSON:", flowJson);
 
     // Pass the fetched JSON to createFlowFromJson
