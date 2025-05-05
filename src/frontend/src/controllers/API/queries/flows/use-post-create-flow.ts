@@ -14,6 +14,8 @@ export async function createFlowFromJson(flowJson: {
   
   // Convert simple node types to match template keys (more flexible lookup)
   const getTemplateKey = (nodeType: string): string => {
+    if (!nodeType) return "ChatMessage"; // Default if no type provided
+    
     // Try direct match first
     if (templates[nodeType]) return nodeType;
     
@@ -34,15 +36,15 @@ export async function createFlowFromJson(flowJson: {
   
   // Map nodes with better template matching
   const mappedNodes: AllNodeType[] = nodes.map((node) => {
-    const templateKey = getTemplateKey(node.type);
-    const nodeTemplate = templates[templateKey];
+    const templateKey = getTemplateKey(node.type || "");
+    const nodeTemplate = templates[templateKey] || {};
     
     return {
       id: node.id,
       type: "genericNode",
-      position: node.position,
+      position: node.position || { x: 0, y: 0 },
       data: {
-        ...node.data,
+        ...(node.data || {}),
         type: templateKey,
         id: node.id,
         node: {
@@ -58,6 +60,17 @@ export async function createFlowFromJson(flowJson: {
     const sourceNode = mappedNodes.find(n => n.id === edge.source);
     const targetNode = mappedNodes.find(n => n.id === edge.target);
     
+    if (!sourceNode || !targetNode) {
+      console.warn(`Edge ${edge.id} has missing source or target node, skipping proper configuration`);
+      return {
+        id: edge.id || `edge-${Math.random().toString(36).substr(2, 9)}`,
+        source: edge.source,
+        target: edge.target,
+        type: "default",
+        data: {},
+      } as EdgeType;
+    }
+    
     // Get first available output from source node or use default
     const outputInfo = sourceNode?.data?.node?.outputs?.[0] || {
       name: "message",
@@ -65,29 +78,45 @@ export async function createFlowFromJson(flowJson: {
     };
     
     // Get first input field from target node or use default
-    const inputField = targetNode?.data?.node?.field_order?.[0] || "input_value";
+    // Safely access field_order if it exists
+    const fieldOrder = targetNode?.data?.node?.template ? 
+      Object.keys(targetNode.data.node.template)[0] : 
+      'input_value';
     
     const sourceHandle = {
-      dataType: sourceNode.data.type,
+      dataType: sourceNode.data?.type || "unknown",
       id: sourceNode.id,
       name: outputInfo.name,
       output_types: outputInfo.types
     };
     
     const targetHandle = {
-      fieldName: inputField,
+      fieldName: fieldOrder,
       id: targetNode.id,
       inputTypes: outputInfo.types, // Match input with output types
       type: "str"
     };
     
-    return {
-      ...edge,
-      type: edge.type || "default",
-      sourceHandle: JSON.stringify(sourceHandle).replace(/"/g, "œ"),
-      targetHandle: JSON.stringify(targetHandle).replace(/"/g, "œ"),
-      data: { sourceHandle, targetHandle }
-    };
+    try {
+      return {
+        id: edge.id || `edge-${Math.random().toString(36).substr(2, 9)}`,
+        source: edge.source,
+        target: edge.target,
+        type: "default",
+        sourceHandle: JSON.stringify(sourceHandle).replace(/"/g, "œ"),
+        targetHandle: JSON.stringify(targetHandle).replace(/"/g, "œ"),
+        data: { sourceHandle, targetHandle }
+      } as EdgeType;
+    } catch (error) {
+      console.error("Error creating edge:", error);
+      return {
+        id: edge.id || `edge-${Math.random().toString(36).substr(2, 9)}`,
+        source: edge.source,
+        target: edge.target,
+        type: "default",
+        data: {},
+      } as EdgeType;
+    }
   });
 
   // Update flow store

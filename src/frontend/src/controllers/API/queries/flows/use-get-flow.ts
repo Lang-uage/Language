@@ -6,22 +6,28 @@ import { useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api";
 import { getURL } from "../../helpers/constants";
 import { UseRequestProcessor } from "../../services/request-processor";
+import { Node, Edge } from "@xyflow/react";
 
 interface IGetFlow {
   id: string;
   public?: boolean;
 }
 
-export async function fetchFlowFromBackend(flowId: string): Promise<{ nodes: Array<Node>; edges: Array<Edge> }> {
+export async function fetchFlowFromBackend(flowId: string, useCase?: string): Promise<{ nodes: Array<Node>; edges: Array<Edge> }> {
   try {
     alert("Fetching flow from backend..Hitting the backend API");
-    const response = await axios.get(`http://127.0.0.1:8000/api/flows`);
+    const url = useCase 
+      ? `http://127.0.0.1:8000/api/flows?use_case=${encodeURIComponent(useCase)}`
+      : `http://127.0.0.1:8000/api/flows`;
+      
+    const response = await axios.get(url);
     if (response.status !== 200) {
       alert("Error fetching flow from backend");
       throw new Error(`Failed to fetch flow: ${response.statusText}`);
     }
     alert("Flow fetched successfully");
     console.log("Fetched flow data:", response.data);
+    console.log("User use case:", useCase || "None provided");
     return response.data; // Assuming the backend returns { nodes, edges }
   } catch (error) {
     console.error("Error fetching flow from backend:", error);
