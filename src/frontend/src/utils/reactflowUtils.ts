@@ -686,25 +686,104 @@ export function addEscapedHandleIdsToEdges({
 }: addEscapedHandleIdsToEdgesType): EdgeType[] {
   let newEdges = cloneDeep(edges);
   newEdges.forEach((edge) => {
-    let escapedSourceHandle = edge.sourceHandle;
-    let escapedTargetHandle = edge.targetHandle;
-    if (!escapedSourceHandle) {
-      let sourceHandle = edge.data?.sourceHandle;
-      if (sourceHandle) {
-        escapedSourceHandle = getRightHandleId(sourceHandle);
-        edge.sourceHandle = escapedSourceHandle;
+    try {
+      console.log(`Processing edge ${edge.id || 'new edge'} from ${edge.source} to ${edge.target}`);
+      
+      // Initialize data object if needed
+      if (!edge.data) {
+        edge.data = {};
       }
-    }
-    if (!escapedTargetHandle) {
-      let targetHandle = edge.data?.targetHandle;
-      if (targetHandle) {
-        escapedTargetHandle = getLeftHandleId(targetHandle);
-        edge.targetHandle = escapedTargetHandle;
+      
+      // Process source handle
+      if (edge.data?.sourceHandle) {
+        // We already have the full data, just regenerate the simple ID
+        console.log('Using existing source handle data from edge.data');
+        edge.sourceHandle = getRightHandleId(edge.data.sourceHandle);
+      } else if (edge.sourceHandle) {
+        // Try to determine if this is already in the new format
+        if (edge.sourceHandle.includes('-') && !edge.sourceHandle.includes('%')) {
+          // Looks like new format already - nodeId-portName
+          console.log('Source handle appears to be in new format already:', edge.sourceHandle);
+          
+          // Try to extract data to store in edge.data
+          const [nodeId, ...portNameParts] = edge.sourceHandle.split('-');
+          const portName = portNameParts.join('-');
+          
+          edge.data.sourceHandle = {
+            id: nodeId,
+            name: portName,
+            output_types: ["any"], // Default to any if we can't determine
+            dataType: "unknown"
+          };
+        } else {
+          // Try to parse as JSON (old format)
+          try {
+            console.log('Attempting to parse source handle as JSON');
+            edge.data.sourceHandle = scapeJSONParse(edge.sourceHandle);
+            edge.sourceHandle = getRightHandleId(edge.data.sourceHandle);
+          } catch (e) {
+            console.warn(`Could not parse source handle: ${edge.sourceHandle}`, e);
+            // Keep as is if we can't parse it
+          }
+        }
+      } else {
+        console.warn(`Edge ${edge.id} has no source handle information`);
       }
+      
+      // Process target handle
+      if (edge.data?.targetHandle) {
+        // We already have the full data, just regenerate the simple ID
+        console.log('Using existing target handle data from edge.data');
+        edge.targetHandle = getLeftHandleId(edge.data.targetHandle);
+      } else if (edge.targetHandle) {
+        // Try to determine if this is already in the new format
+        if (edge.targetHandle.includes('-') && !edge.targetHandle.includes('%')) {
+          // Looks like new format already - nodeId-portName
+          console.log('Target handle appears to be in new format already:', edge.targetHandle);
+          
+          // Try to extract data to store in edge.data
+          const [nodeId, ...fieldNameParts] = edge.targetHandle.split('-');
+          const fieldName = fieldNameParts.join('-');
+          
+          edge.data.targetHandle = {
+            id: nodeId,
+            fieldName: fieldName,
+            type: "unknown", // Default if we can't determine
+            inputTypes: ["any"] // Default if we can't determine
+          };
+        } else {
+          // Try to parse as JSON (old format)
+          try {
+            console.log('Attempting to parse target handle as JSON');
+            edge.data.targetHandle = scapeJSONParse(edge.targetHandle);
+            edge.targetHandle = getLeftHandleId(edge.data.targetHandle);
+          } catch (e) {
+            console.warn(`Could not parse target handle: ${edge.targetHandle}`, e);
+            // Keep as is if we can't parse it
+          }
+        }
+      } else {
+        console.warn(`Edge ${edge.id} has no target handle information`);
+      }
+      
+      // Regenerate edge ID in a consistent way if we have all the needed info
+      if (edge.source && edge.target && edge.sourceHandle && edge.targetHandle) {
+        const oldId = edge.id;
+        edge.id = getHandleId(
+          edge.source, 
+          edge.sourceHandle, 
+          edge.target, 
+          edge.targetHandle
+        );
+        console.log(`Updated edge ID: ${oldId} -> ${edge.id}`);
+      }
+    } catch (error) {
+      console.error(`Error processing edge:`, error);
     }
   });
   return newEdges;
 }
+
 export function updateEdgesHandleIds({
   edges,
   nodes,
@@ -718,36 +797,98 @@ export function updateEdgesHandleIds({
     let source = edge.sourceHandle;
     let target = edge.targetHandle;
     //right
-    let newSource: sourceHandleType;
+    let newSource: sourceHandleType | undefined;
     //left
-    let newTarget: targetHandleType;
+    let newTarget: targetHandleType | undefined;
+
     if (target && targetNode) {
-      let field = target.split("|")[1];
-      newTarget = {
-        type: targetNode.data.node!.template[field].type,
-        fieldName: field,
-        id: targetNode.data.id,
-        inputTypes: targetNode.data.node!.template[field].input_types,
-      };
+      try {
+        // Try to parse as JSON first (handles new format with encoding)
+        const parsedTarget = scapeJSONParse(target);
+        if (parsedTarget && typeof parsedTarget === 'object') {
+          // Already in the correct format, just ensure it has the required fields
+          if (parsedTarget.fieldName) {
+            const field = parsedTarget.fieldName;
+            // Check if the template and field exist
+            if (targetNode.data.node?.template && targetNode.data.node.template[field]) {
+              newTarget = {
+                type: targetNode.data.node.template[field].type,
+                fieldName: field,
+                id: targetNode.data.id,
+                inputTypes: targetNode.data.node.template[field].input_types,
+              };
+            }
+          }
+        }
+      } catch (e) {
+        // Not JSON, try legacy format with string splitting
+        try {
+          const field = target.split("|")[1];
+          // Check if the field exists in the template
+          if (field && targetNode.data.node?.template && targetNode.data.node.template[field]) {
+            newTarget = {
+              type: targetNode.data.node.template[field].type,
+              fieldName: field,
+              id: targetNode.data.id,
+              inputTypes: targetNode.data.node.template[field].input_types,
+            };
+          } else {
+            console.warn(`Field ${field} not found in template for node ${targetNode.id}`);
+          }
+        } catch (splitError) {
+          console.warn(`Unable to process target handle: ${target}`, splitError);
+        }
+      }
     }
+
     if (source && sourceNode && sourceNode.type === "genericNode") {
-      const output_types =
-        sourceNode.data.node!.output_types ??
-        sourceNode.data.node!.base_classes!;
-      newSource = {
-        id: sourceNode.data.id,
-        output_types,
-        dataType: sourceNode.data.type,
-        name: output_types.join(" | "),
+      try {
+        // Try to parse as JSON first
+        const parsedSource = scapeJSONParse(source);
+        if (parsedSource && typeof parsedSource === 'object') {
+          // Already in the correct format
+          const output_types = parsedSource.output_types || 
+            sourceNode.data.node?.output_types || 
+            sourceNode.data.node?.base_classes || [];
+            
+          newSource = {
+            id: sourceNode.data.id,
+            output_types,
+            dataType: sourceNode.data.type,
+            name: output_types.join(" | "),
+          };
+        }
+      } catch (e) {
+        // Not JSON, use legacy approach
+        const output_types =
+          sourceNode.data.node?.output_types ||
+          sourceNode.data.node?.base_classes || [];
+          
+        newSource = {
+          id: sourceNode.data.id,
+          output_types,
+          dataType: sourceNode.data.type,
+          name: output_types.join(" | "),
+        };
+      }
+    }
+
+    // Only update the handles if we successfully created new ones
+    if (newSource) {
+      edge.sourceHandle = scapedJSONStringfy(newSource);
+    }
+    
+    if (newTarget) {
+      edge.targetHandle = scapedJSONStringfy(newTarget);
+    }
+    
+    // Update the data object if both handles are valid
+    if (newSource && newTarget) {
+      edge.data = {
+        sourceHandle: newSource,
+        targetHandle: newTarget,
       };
     }
-    edge.sourceHandle = scapedJSONStringfy(newSource!);
-    edge.targetHandle = scapedJSONStringfy(newTarget!);
-    const newData = {
-      sourceHandle: scapeJSONParse(edge.sourceHandle),
-      targetHandle: scapeJSONParse(edge.targetHandle),
-    };
-    edge.data = newData;
   });
   return newEdges;
 }
@@ -955,11 +1096,26 @@ export function convertValuesToNumbers(arr) {
 }
 
 export function scapedJSONStringfy(json: object): string {
-  return customStringify(json).replace(/"/g, "œ");
+  // Use encodeURIComponent instead of replacing quotes with special characters
+  // This ensures the JSON string is properly escaped for use as a handle ID
+  return encodeURIComponent(customStringify(json));
 }
+
 export function scapeJSONParse(json: string): any {
-  let parsed = json.replace(/œ/g, '"');
-  return JSON.parse(parsed);
+  try {
+    // Decode the URI encoded string first
+    const decoded = decodeURIComponent(json);
+    return JSON.parse(decoded);
+  } catch (error) {
+    // Fallback for backward compatibility with existing data
+    // If the string contains the special œ character, use the old parsing method
+    if (json.includes('œ')) {
+      const parsed = json.replace(/œ/g, '"');
+      return JSON.parse(parsed);
+    }
+    // If all else fails, throw the original error
+    throw error;
+  }
 }
 
 // this function receives an array of edges and return true if any of the handles are not a json string
@@ -1449,21 +1605,37 @@ export function updateEdgesIds(
 
 export function processFlowEdges(flow: FlowType) {
   if (!flow.data || !flow.data.edges) return;
-  if (checkEdgeWithoutEscapedHandleIds(flow.data.edges)) {
-    const newEdges = addEscapedHandleIdsToEdges({ edges: flow.data.edges });
-    flow.data.edges = newEdges;
-  } else if (checkOldEdgesHandles(flow.data.edges)) {
-    const newEdges = updateEdgesHandleIds(flow.data);
-    flow.data.edges = newEdges;
+  
+  try {
+    if (checkEdgeWithoutEscapedHandleIds(flow.data.edges)) {
+      console.log("Adding escaped handle IDs to edges");
+      const newEdges = addEscapedHandleIdsToEdges({ edges: flow.data.edges });
+      flow.data.edges = newEdges;
+    } else if (checkOldEdgesHandles(flow.data.edges)) {
+      console.log("Updating edges handle IDs");
+      const newEdges = updateEdgesHandleIds(flow.data);
+      flow.data.edges = newEdges;
+    }
+  } catch (error) {
+    console.error("Error processing flow edges:", error);
+    // Prevent the error from blocking the entire flow loading
+    // We'll just continue with the existing edges
   }
 }
 
 export function processFlowNodes(flow: FlowType) {
   if (!flow.data || !flow.data.nodes) return;
-  if (checkOldNodesOutput(flow.data.nodes)) {
-    const { nodes, edges } = updateNewOutput(flow.data);
-    flow.data.nodes = nodes;
-    flow.data.edges = edges;
+  
+  try {
+    if (checkOldNodesOutput(flow.data.nodes)) {
+      console.log("Updating nodes with new output format");
+      const { nodes, edges } = updateNewOutput(flow.data);
+      flow.data.nodes = nodes;
+      flow.data.edges = edges;
+    }
+  } catch (error) {
+    console.error("Error processing flow nodes:", error);
+    // Continue with existing nodes/edges
   }
 }
 
