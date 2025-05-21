@@ -15,7 +15,10 @@ interface IGetFlow {
 
 export async function fetchFlowFromBackend(flowId: string, useCase?: string): Promise<{ nodes: Array<Node>; edges: Array<Edge> }> {
   try {
-    alert("Fetching flow from backend..Hitting the backend API");
+    console.log("Sending user input to backend:", useCase);
+    alert("Fetching flow from backend with user input: " + (useCase || "None"));
+    
+    // Keep the hardcoded URL as requested
     const url = useCase 
       ? `http://127.0.0.1:8000/api/flows?use_case=${encodeURIComponent(useCase)}`
       : `http://127.0.0.1:8000/api/flows`;
@@ -27,7 +30,8 @@ export async function fetchFlowFromBackend(flowId: string, useCase?: string): Pr
     }
     alert("Flow fetched successfully");
     console.log("Fetched flow data:", response.data);
-    console.log("User use case:", useCase || "None provided");
+    console.log("User use case sent to backend:", useCase || "None provided");
+    
     return response.data; // Assuming the backend returns { nodes, edges }
   } catch (error) {
     console.error("Error fetching flow from backend:", error);

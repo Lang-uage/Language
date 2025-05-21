@@ -70,6 +70,80 @@ import SelectionMenu from "../SelectionMenuComponent";
 import UpdateAllComponents from "../UpdateAllComponents";
 import getRandomName from "./utils/get-random-name";
 import isWrappedWithClass from "./utils/is-wrapped-with-class";
+import { motion, AnimatePresence } from "framer-motion";
+
+// Particle component for animation
+const FlowParticle = ({ delay, position }: {delay: number, position: {x: number, y: number}}) => {
+  const getRandomColor = () => {
+    const colors = ['#3ca885', '#63b3ed', '#fc8181', '#9f7aea', '#f6ad55'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+  
+  const pathVariants = {
+    hidden: { pathLength: 0, opacity: 0 },
+    visible: { 
+      pathLength: 1, 
+      opacity: 1,
+      transition: { 
+        duration: 1.5,
+        ease: "easeInOut",
+        delay 
+      }
+    }
+  };
+  
+  return (
+    <motion.div
+      initial={{ 
+        x: position.x, 
+        y: position.y, 
+        scale: 0, 
+        opacity: 0
+      }}
+      animate={{ 
+        x: position.x + (Math.random() * 100 - 50),
+        y: position.y + (Math.random() * 100 - 50),
+        scale: 1, 
+        opacity: [0, 1, 0]
+      }}
+      transition={{ 
+        duration: 2.5, 
+        delay,
+        ease: "easeInOut"
+      }}
+      style={{
+        position: 'absolute',
+        background: getRandomColor(),
+        width: Math.random() * 10 + 5,
+        height: Math.random() * 10 + 5,
+        borderRadius: '50%',
+        boxShadow: `0 0 ${Math.random() * 10 + 5}px ${getRandomColor()}`
+      }}
+    >
+      {Math.random() > 0.5 && (
+        <svg width="100" height="100" viewBox="0 0 100 100" style={{ position: 'absolute', left: -50, top: -50 }}>
+          <motion.path
+            d={`M${Math.random() * 20} ${Math.random() * 20} Q ${Math.random() * 100} ${Math.random() * 100}, ${Math.random() * 80 + 20} ${Math.random() * 80 + 20}`}
+            stroke={getRandomColor()}
+            strokeWidth="2"
+            fill="transparent"
+            variants={pathVariants}
+            initial="hidden"
+            animate="visible"
+          />
+        </svg>
+      )}
+    </motion.div>
+  );
+};
+
+// Message types for chat interface
+type MessageType = {
+  id: string;
+  content: string;
+  sender: "user" | "system";
+  timestamp: Date;
+};
 
 const nodeTypes = {
   genericNode: GenericNode,
@@ -139,7 +213,64 @@ export default function Page({
   const shadowBoxHeight = NOTE_NODE_MIN_HEIGHT * (zoomLevel || 1);
   const shadowBoxBackgroundColor = COLOR_OPTIONS[Object.keys(COLOR_OPTIONS)[0]];
 
-  const [userUseCase, setUserUseCase] = useState("");
+  // New chat-related state
+  const [userInput, setUserInput] = useState("");
+  const [messages, setMessages] = useState<MessageType[]>([
+    {
+      id: "welcome",
+      content: "Hello! Please describe your use case, and I'll create a flow for you.",
+      sender: "system",
+      timestamp: new Date(),
+    },
+  ]);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const componentsToUpdate = useFlowStore((state) => state.componentsToUpdate);
+
+  // State for particles
+  const [particles, setParticles] = useState<Array<{id: number, delay: number, position: {x: number, y: number}}>>([]);
+  
+  // Generate particles when animation starts
+  useEffect(() => {
+    if (isAnimating) {
+      // Create random particles around the center of the screen
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      
+      const newParticles = Array.from({ length: 30 }, (_, i) => ({
+        id: i,
+        delay: Math.random() * 0.5,
+        position: {
+          x: centerX + (Math.random() * 400 - 200),
+          y: centerY + (Math.random() * 400 - 200)
+        }
+      }));
+      
+      setParticles(newParticles);
+    } else {
+      setParticles([]);
+    }
+  }, [isAnimating]);
+
+  // Function to scroll to bottom of messages
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Scroll to bottom whenever messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Focus input when chat is opened
+  useEffect(() => {
+    if (isChatOpen) {
+      inputRef.current?.focus();
+    }
+  }, [isChatOpen]);
 
   function handleGroupNode() {
     takeSnapshot();
@@ -543,26 +674,100 @@ export default function Page({
     };
   }, [isAddingNote, shadowBoxWidth, shadowBoxHeight]);
 
-  const componentsToUpdate = useFlowStore((state) => state.componentsToUpdate);
-
-  const handleTestButtonClick = async () => {
-    const testFlowId = "test-flow-id"; // Replace with a valid flow ID for testing
+  // Updated function to handle fetching flows via chat
+  const handleSendMessage = async () => {
+    // Don't do anything if input is empty
+    if (!userInput.trim()) return;
+    
+    // Create a new user message
+    const userMessage: MessageType = {
+      id: Date.now().toString(),
+      content: userInput,
+      sender: "user",
+      timestamp: new Date(),
+    };
+    
+    // Store the input before clearing it
+    const currentInput = userInput;
+    
+    // Add user message to chat
+    setMessages(prev => [...prev, userMessage]);
+    
+    // Clear input field
+    setUserInput("");
+    
+    // Start animation
+    setIsAnimating(true);
+    
+    // Add typing indicator
+    const typingIndicatorId = Date.now() + 999;
+    setMessages(prev => [...prev, {
+      id: typingIndicatorId.toString(),
+      content: "typing-indicator",
+      sender: "system",
+      timestamp: new Date(),
+    }]);
+    
     try {
-      // Pass the user use case to the fetchAndCreateFlow function
-      await fetchAndCreateFlow(testFlowId, userUseCase);
-      alert("Flow fetched and rendered successfully!");
-      // Clear the input after successful fetch
-      setUserUseCase("");
+      console.log("Sending user input to backend:", currentInput);
+      
+      // Fetch flow with the user input
+      const testFlowId = "test-flow-id";
+      await fetchAndCreateFlow(testFlowId, currentInput);
+      
+      // Wait a moment for natural feeling
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Remove typing indicator
+      setMessages(prev => prev.filter(msg => msg.id !== typingIndicatorId.toString()));
+      
+      // Create a success message
+      const systemMessage: MessageType = {
+        id: (Date.now() + 1).toString(),
+        content: "Flow created successfully based on your description!",
+        sender: "system",
+        timestamp: new Date(),
+      };
+      
+      // Add system response to chat
+      setMessages(prev => [...prev, systemMessage]);
+      
     } catch (error) {
       console.error("Error fetching and rendering flow:", error);
-      alert("Failed to fetch and render flow. Check the console for details.");
+      
+      // Remove typing indicator
+      setMessages(prev => prev.filter(msg => msg.id !== typingIndicatorId.toString()));
+      
+      // Create an error message
+      const errorMessage: MessageType = {
+        id: (Date.now() + 1).toString(),
+        content: "Sorry, I encountered an error while creating your flow. Please try again.",
+        sender: "system",
+        timestamp: new Date(),
+      };
+      
+      // Add error message to chat
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      // Stop animation after 1 second to ensure it's visible
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 1000);
+    }
+  };
+
+  // Handle key press (Enter to send)
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
 
   return (
     <div className="h-full w-full bg-canvas" ref={reactFlowWrapper}>
       {showCanvas ? (
-        <div id="react-flow-id" className="h-full w-full bg-canvas">
+        <div id="react-flow-id" className="h-full w-full bg-canvas flow-canvas">
           <ReactFlow<AllNodeType, EdgeType>
             nodes={nodes}
             edges={edges}
@@ -593,7 +798,7 @@ export default function Page({
               minZoom: 0.2,
               maxZoom: 8,
             }}
-            className="theme-attribution"
+            className="theme-attribution flow-canvas"
             minZoom={0.2}
             maxZoom={3}
             zoomOnScroll={!view}
@@ -604,7 +809,8 @@ export default function Page({
             onPaneClick={onPaneClick}
             onEdgeClick={handleEdgeClick}
           >
-            <Background size={2} gap={20} className="" />
+            <Background size={2} gap={20} className="bg-grid-pattern" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-secondary/5 pointer-events-none z-0"></div>
             {!view && (
               <>
                 <CanvasControls>
@@ -663,67 +869,225 @@ export default function Page({
               backgroundColor: `${shadowBoxBackgroundColor}`,
               opacity: 0.7,
               pointerEvents: "none",
-              // Prevent shadow-box from showing unexpectedly during initial renders
               display: "none",
             }}
           ></div>
-          {/* Chat Input and Test Button Container */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: "20px",
-              right: "20px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: "10px",
-              maxWidth: "300px",
-              width: "100%"
-            }}
-          >
-            <div
-              style={{
-                width: "100%",
-                backgroundColor: "#fff",
-                borderRadius: "5px",
-                boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-                overflow: "hidden"
-              }}
+          
+          {/* Chatbot UI */}
+          <AnimatePresence>
+            <motion.div
+              className="absolute bottom-6 right-6 z-50"
+              layout
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
             >
-              <textarea
-                value={userUseCase}
-                onChange={(e) => setUserUseCase(e.target.value)}
-                placeholder="Describe your use case here..."
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  border: "none",
-                  borderBottom: "1px solid #e0e0e0",
-                  resize: "vertical",
-                  minHeight: "80px",
-                  fontFamily: "inherit",
-                  fontSize: "14px",
-                  color: "#666666"
-                }}
-                data-testid="use-case-input"
-              />
-            </div>
-            <button
-              onClick={handleTestButtonClick}
-              style={{
-                padding: "10px 20px",
-                backgroundColor: "#007bff",
-                color: "#fff",
-                border: "none",
-                borderRadius: "5px",
-                cursor: "pointer",
-                boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-                width: "100%"
-              }}
-            >
-              Test Fetch Flow
-            </button>
-          </div>
+              {/* Chat toggle button */}
+              {!isChatOpen && (
+                <motion.button
+                  className="chatbot-toggle-btn shadow-xl rounded-full bg-[#3ca885] text-white p-4 flex items-center justify-center pulse-animation"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsChatOpen(true)}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                >
+                  <ForwardedIconComponent name="message-circle" className="h-6 w-6" />
+                </motion.button>
+              )}
+              
+              {/* Chat interface */}
+              {isChatOpen && (
+                <motion.div
+                  className="chatbot-container flex flex-col dark:bg-zinc-900 bg-white border dark:border-zinc-800 border-zinc-200 rounded-lg shadow-2xl overflow-hidden"
+                  style={{ width: "380px", height: "500px", maxHeight: "80vh" }}
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {/* Chat header */}
+                  <div className="chat-header flex items-center justify-between px-4 py-3 bg-[#3ca885]/95 text-white">
+                    <div className="flex items-center gap-2">
+                      <ForwardedIconComponent name="bot" className="h-5 w-5" />
+                      <h3 className="font-medium">Flow Assistant</h3>
+                    </div>
+                    <button 
+                      className="p-1 rounded-md hover:bg-white/20 transition-colors"
+                      onClick={() => setIsChatOpen(false)}
+                    >
+                      <ForwardedIconComponent name="x" className="h-4 w-4" />
+                    </button>
+                  </div>
+                  
+                  {/* Messages container */}
+                  <div className="messages-container flex-1 p-4 overflow-y-auto bg-transparent">
+                    {messages.map((message) => (
+                      <motion.div
+                        key={message.id}
+                        className={`message mb-3 ${
+                          message.sender === "user" ? "user-message" : "system-message"
+                        }`}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        {message.content === "typing-indicator" ? (
+                          <div className="p-3 rounded-lg bg-gray-100 dark:bg-zinc-800">
+                            <div className="typing-indicator">
+                              <span></span>
+                              <span></span>
+                              <span></span>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div
+                              className={`p-3 rounded-lg max-w-[85%] ${
+                                message.sender === "user"
+                                  ? "bg-[#3ca885] text-white ml-auto"
+                                  : "bg-gray-100 dark:bg-zinc-800 dark:text-zinc-200"
+                              }`}
+                            >
+                              {message.content}
+                            </div>
+                            <div 
+                              className={`text-xs text-gray-500 mt-1 ${
+                                message.sender === "user" ? "text-right" : "text-left"
+                              }`}
+                            >
+                              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </>
+                        )}
+                      </motion.div>
+                    ))}
+                    <div ref={messagesEndRef} />
+                  </div>
+                  
+                  {/* Input area */}
+                  <div className="input-container p-3 border-t dark:border-zinc-800 border-zinc-200 bg-transparent">
+                    <div className="relative">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        className="w-full px-4 py-2 pr-12 rounded-full border dark:border-zinc-700 border-zinc-300 dark:bg-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#3ca885]"
+                        placeholder="Type your question..."
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                      />
+                      <motion.button
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2 bg-[#3ca885] text-white disabled:opacity-50"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleSendMessage}
+                        disabled={isAnimating || !userInput.trim()}
+                      >
+                        {isAnimating ? (
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{
+                              duration: 1,
+                              repeat: Infinity,
+                              ease: "linear"
+                            }}
+                          >
+                            <ForwardedIconComponent name="loader-2" className="h-4 w-4" />
+                          </motion.div>
+                        ) : (
+                          <ForwardedIconComponent name="send" className="h-4 w-4" />
+                        )}
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+          
+          {/* Animated background when processing */}
+          <AnimatePresence>
+            {isAnimating && (
+              <motion.div 
+                className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 pointer-events-none flex items-center justify-center"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Flow particles */}
+                {particles.map((particle) => (
+                  <FlowParticle 
+                    key={particle.id} 
+                    delay={particle.delay} 
+                    position={particle.position} 
+                  />
+                ))}
+                
+                <motion.div 
+                  className="relative"
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <motion.div
+                    className="gradients-container absolute inset-0 rounded-full"
+                    style={{ width: 120, height: 120 }}
+                  >
+                    {[...Array(5)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className={`g${i+1} absolute inset-0 rounded-full bg-[#3ca885]/70`}
+                        initial={{ scale: 0.5, opacity: 0.4 }}
+                        animate={{ 
+                          scale: [0.5, 1.2, 0.5], 
+                          opacity: [0.4, 0.8, 0.4]
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          delay: i * 0.2,
+                          ease: "easeInOut"
+                        }}
+                      />
+                    ))}
+                  </motion.div>
+                  <motion.div
+                    className="bg-[#3ca885] text-white p-6 rounded-full shadow-xl flex items-center justify-center z-10 relative"
+                    style={{ width: 120, height: 120 }}
+                    animate={{ 
+                      boxShadow: [
+                        "0 0 0 0 rgba(60, 168, 133, 0.4)", 
+                        "0 0 0 20px rgba(60, 168, 133, 0)", 
+                        "0 0 0 0 rgba(60, 168, 133, 0)"
+                      ],
+                      scale: [1, 1.05, 1]
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      repeatType: "loop"
+                    }}
+                  >
+                    <motion.div
+                      animate={{ 
+                        rotate: 360,
+                      }}
+                      transition={{
+                        duration: 4,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                    >
+                      <ForwardedIconComponent name="bot" className="h-12 w-12" />
+                    </motion.div>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       ) : (
         <div className="flex h-full w-full items-center justify-center">

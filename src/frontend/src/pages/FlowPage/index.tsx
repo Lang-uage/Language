@@ -165,7 +165,7 @@ export default function FlowPage({ view }: { view?: boolean }): JSX.Element {
             <SidebarProvider width="17.5rem" defaultOpen={!isMobile}>
               {!view && <FlowSidebarComponent isLoading={isLoading} />}
               <main className="flex w-full overflow-hidden">
-                <div className="h-full w-full">
+                <div className="h-full w-full flow-content">
                   <Page setIsLoading={setIsLoading} />
                 </div>
               </main>
