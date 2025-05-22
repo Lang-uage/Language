@@ -6,6 +6,7 @@ import { AllNodeType, EdgeType, sourceHandleType, targetHandleType } from "@/typ
 import { updateEdgesHandleIds } from "@/utils/reactflowUtils";
 import { scapedJSONStringfy } from "@/utils/reactflowUtils";
 import useAlertStore from "@/stores/alertStore";
+import { isValidConnection } from "@/utils/reactflowUtils"; // Add this import at the top
 
 export async function createFlowFromJson(flowJson: {
   nodes: Array<Node>;
@@ -180,6 +181,24 @@ export async function createFlowFromJson(flowJson: {
         inputTypes: (targetTemplateFields[fieldOrder]?.input_types || outputInfo.types),
         type: (targetTemplateFields[fieldOrder]?.type || "str")
       };
+
+          // Create stringified handles for validation
+        const sourceHandleStr = scapedJSONStringfy(sourceHandle);
+        const targetHandleStr = scapedJSONStringfy(targetHandle);
+        
+        // Validate the connection
+        const connectionToValidate = {
+          source: sourceNode.id,
+          target: targetNode.id,
+          sourceHandle: sourceHandleStr,
+          targetHandle: targetHandleStr
+        };
+        
+        const isValid = isValidConnection(connectionToValidate, mappedNodes, []);
+
+        if (!isValid) {
+          console.warn(`[createFlowFromJson] Invalid connection between ${sourceNode.id} and ${targetNode.id}`);
+        }
       
       // Create the edge with properly escaped handle identifiers
       try {
