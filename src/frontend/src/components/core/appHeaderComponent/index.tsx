@@ -95,6 +95,24 @@ export default function AppHeader(): JSX.Element {
         className={`relative left-3 z-30 flex items-center gap-2`}
         data-testid="header_right_section_wrapper"
       >
+        {/* Copilot Button */}
+        <ShadTooltip content="AI Copilot" side="bottom" styleClasses="z-10">
+          <Button
+            variant="ghost"
+            className="flex text-sm font-medium"
+            onClick={() => navigate("/copilot")}
+            data-testid="copilot_button"
+          >
+            <ForwardedIconComponent
+              name="Sparkles"
+              className="side-bar-button-size h-[18px] w-[18px] text-blue-500"
+            />
+            <span className="hidden whitespace-nowrap 2xl:inline">
+              Copilot
+            </span>
+          </Button>
+        </ShadTooltip>
+
         <AlertDropdown
           notificationRef={notificationContentRef}
           onClose={() => setActiveState(null)}
