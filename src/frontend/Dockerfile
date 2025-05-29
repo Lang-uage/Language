@@ -2,7 +2,7 @@ FROM node:20-alpine as frontend_build
 ARG BACKEND_URL
 WORKDIR /app
 
-COPY ./package.json ./package-lock.json ./tsconfig.json ./vite.config.ts ./index.html ./tailwind.config.js ./postcss.config.js ./prettier.config.js /app/
+COPY ./package.json ./package-lock.json ./tsconfig.json ./index.html ./vite.config.mts ./tailwind.config.mjs ./postcss.config.js /app/
 RUN npm install
 COPY ./src /app/src
 RUN npm run build

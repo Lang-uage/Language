@@ -511,3 +511,34 @@ locust: ## run locust load tests (options: locust_users=10 locust_spawn_rate=1 l
 			--host $(locust_host) \
 			-f $$(basename "$(locust_file)"); \
 	fi
+
+######################
+# DOCKER COMMANDS
+######################
+docker_build_frontend: ## build the frontend Docker image
+	@echo 'Building frontend Docker image...'
+	docker build -t my-langflowfrontend -f docker/frontend/Dockerfile .
+
+docker_build_backend: ## build the backend Docker image
+	@echo 'Building backend Docker image...'
+	docker build -t my-langflowbackend -f Dockerfile .
+
+docker_run_frontend: ## run the frontend Docker container
+	@echo 'Running frontend Docker container...'
+	docker run -d \
+		-p 3000:3000 \
+		-e BACKEND_URL=http://host.docker.internal:7860 \
+		-e FRONTEND_PORT=3000 \
+		--name langflow-frontend \
+		my-langflowfrontend
+
+docker_run_backend:
+	@echo 'Running backend Docker container...'
+	docker run -d -p 7860:7860 --name langflow-backend my-langflowbackend
+
+docker_stop: ## stop all Docker containers
+	@echo 'Stopping Docker containers...'
+	docker stop langflow-frontend langflow-backend || true
+	docker rm -f langflow-frontend langflow-backend || true
+
+docker_start: docker_build_frontend docker_build_backend docker_run_frontend docker_run_backend ## build and start all Docker containers

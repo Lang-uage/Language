@@ -30,5 +30,5 @@ RUN mkdir -p /app/flows /app/langflow-config-dir
 # Expose the port Langflow runs on
 EXPOSE 7860
 
-# Set the command to run Langflow
-CMD ["langflow", "run", "--host", "0.0.0.0", "--port", "7860"] 
+# Run Langflow in backend-only mode
+CMD ["langflow", "run", "--backend-only", "--host", "0.0.0.0", "--port", "7860"] 
