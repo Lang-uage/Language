@@ -74,6 +74,10 @@ services:
       - result_backend
     env_file:
       - .env
+    environment:
+      - CORS_ORIGINS=https://${DOMAIN},https://www.${DOMAIN}
+      - CORS_METHODS=GET,POST,PUT,DELETE,OPTIONS
+      - CORS_HEADERS=*
     healthcheck:
       test: "exit 0"
     deploy:

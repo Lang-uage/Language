@@ -12,5 +12,5 @@ COPY --from=frontend_build /app/build/ /usr/share/nginx/html
 COPY /nginx.conf /etc/nginx/conf.d/default.conf
 COPY start-nginx.sh /start-nginx.sh
 RUN chmod +x /start-nginx.sh
-ENV BACKEND_URL=https://langflowbackend-5atk4.ondigitalocean.app
+ENV BACKEND_URL=https://langflowbackend-5atk4.ondigitalocean.app/
 CMD ["/start-nginx.sh"]
