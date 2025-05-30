@@ -13,4 +13,5 @@ COPY /nginx.conf /etc/nginx/conf.d/default.conf
 COPY start-nginx.sh /start-nginx.sh
 RUN chmod +x /start-nginx.sh
 ENV BACKEND_URL=https://langflowbackend-5atk4.ondigitalocean.app
+ENV FRONTEND_PORT=3000
 CMD ["/start-nginx.sh"]
