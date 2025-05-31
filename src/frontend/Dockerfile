@@ -12,5 +12,5 @@ COPY --from=frontend_build /app/build/ /usr/share/nginx/html
 COPY /nginx.conf /etc/nginx/conf.d/default.conf
 COPY start-nginx.sh /start-nginx.sh
 RUN chmod +x /start-nginx.sh
-ENV BACKEND_URL=$BACKEND_URL
+ENV BACKEND_URL=https://language-backend-yuiy4.ondigitalocean.app/
 CMD ["/start-nginx.sh"]
