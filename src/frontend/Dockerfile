@@ -12,10 +12,11 @@ COPY . .
 # Build the frontend
 RUN npm run build
 
-FROM nginx
+FROM nginx:alpine
 COPY --from=frontend_build /app/build/ /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY start-nginx.sh /start-nginx.sh
 RUN chmod +x /start-nginx.sh
 ENV BACKEND_URL=$BACKEND_URL
+EXPOSE 3000
 CMD ["/start-nginx.sh"]
