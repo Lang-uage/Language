@@ -1,16 +1,21 @@
 FROM node:20-alpine as frontend_build
-ARG BACKEND_URL
+ARG BACKEND_URL=http://0.0.0.0:7860
 WORKDIR /app
 
-COPY ./package.json ./package-lock.json ./tsconfig.json ./index.html ./vite.config.mts ./tailwind.config.mjs ./postcss.config.js /app/
+# Copy package files
+COPY package.json package-lock.json ./
 RUN npm install
-COPY ./src /app/src
+
+# Copy source files
+COPY . .
+
+# Build the frontend
 RUN npm run build
 
 FROM nginx
 COPY --from=frontend_build /app/build/ /usr/share/nginx/html
-COPY /nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY start-nginx.sh /start-nginx.sh
 RUN chmod +x /start-nginx.sh
-ENV BACKEND_URL=https://language-backend-yuiy4.ondigitalocean.app/
+ENV BACKEND_URL=$BACKEND_URL
 CMD ["/start-nginx.sh"]

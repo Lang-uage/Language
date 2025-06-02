@@ -1,5 +1,27 @@
-**/__pycache__
-**/.venv
-**/node_modules
-**/.git
+# Ignore local environment files (so they don't bloat the context)
 .env
+.env.* 
+
+# Node.js artifacts
+node_modules
+npm-debug.log
+yarn-error.log
+dist
+build
+
+# Python artifacts
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+venv
+.venv
+.idea
+.vscode
+
+# Langflow-specific stuff you don't need in the container
+logs
+langflow.db
+
+# Git folder
+.git
