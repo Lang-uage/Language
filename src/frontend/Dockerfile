@@ -1,5 +1,5 @@
 FROM node:20-alpine as frontend_build
-ARG BACKEND_URL=http://0.0.0.0:7860
+ARG BACKEND_URL=https://backend-6hv8c.ondigitalocean.app/
 WORKDIR /app
 
 # Copy package files
