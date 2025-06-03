@@ -13,6 +13,7 @@ import { SidebarHeaderComponentProps } from "../../types";
 import FeatureToggles from "../featureTogglesComponent";
 import { SearchInput } from "../searchInput";
 import { SidebarFilterComponent } from "../sidebarFilterComponent";
+import { useTypesStore } from "@/stores/typesStore";
 
 export const SidebarHeaderComponent = memo(function SidebarHeaderComponent({
   showConfig,
@@ -32,6 +33,19 @@ export const SidebarHeaderComponent = memo(function SidebarHeaderComponent({
   setFilterData,
   data,
 }: SidebarHeaderComponentProps) {
+  const downloadComponentsData = () => {
+    const data = useTypesStore.getState().data;
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
+    
+    const exportFileName = `langflow-components-${new Date().toISOString().split('T')[0]}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileName);
+    linkElement.click();
+  };
+
   return (
     <SidebarHeader className="flex w-full flex-col gap-4 p-4 pb-1">
       <Disclosure open={showConfig} onOpenChange={setShowConfig}>
@@ -40,6 +54,19 @@ export const SidebarHeaderComponent = memo(function SidebarHeaderComponent({
             <ForwardedIconComponent name="PanelLeftClose" />
           </SidebarTrigger>
           <h3 className="flex-1 text-sm font-semibold">Components</h3>
+          <ShadTooltip content="Download Components Data" styleClasses="z-50">
+            <Button
+              variant="ghost"
+              size="iconMd"
+              onClick={downloadComponentsData}
+              data-testid="download-components-data"
+            >
+              <ForwardedIconComponent
+                name="Download"
+                className="h-4 w-4"
+              />
+            </Button>
+          </ShadTooltip>
           <DisclosureTrigger>
             <div>
               <ShadTooltip content="Component settings" styleClasses="z-50">

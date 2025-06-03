@@ -80,6 +80,7 @@
     "sortablejs": "^1.15.6",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
+    "ts-node": "^10.9.2",
     "uuid": "^10.0.0",
     "vanilla-jsoneditor": "^2.3.3",
     "vite-plugin-svgr": "^4.2.0",
@@ -141,7 +142,7 @@
     "simple-git-hooks": "^2.11.1",
     "tailwindcss": "^3.4.4",
     "tailwindcss-dotted-background": "^1.1.0",
-    "typescript": "^5.4.5",
+    "typescript": "^5.8.3",
     "ua-parser-js": "^1.0.38",
     "vite": "^5.4.18"
   }
