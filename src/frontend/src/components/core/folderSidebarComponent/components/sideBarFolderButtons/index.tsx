@@ -27,7 +27,7 @@ import useUploadFlow from "@/hooks/flows/use-upload-flow";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsFetching, useIsMutating } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useParams, useNavigate } from "react-router-dom";
 import { FolderType } from "../../../../../pages/MainPage/entities";
 import useAlertStore from "../../../../../stores/alertStore";
 import useFlowsManagerStore from "../../../../../stores/flowsManagerStore";
@@ -342,6 +342,7 @@ const SideBarFoldersButtonsComponent = ({
   };
 
   const [hoveredFolderId, setHoveredFolderId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   return (
     <Sidebar
@@ -447,7 +448,17 @@ const SideBarFoldersButtonsComponent = ({
       </SidebarContent>
       {ENABLE_FILE_MANAGEMENT && (
         <SidebarFooter className="border-t">
-          <div className="flex w-full items-center gap-2 p-2">
+          <div className="flex w-full flex-col gap-2 p-2">
+            {/* Copilot Button */}
+            <SidebarMenuButton
+              onClick={() => navigate("/copilot")}
+              size="md"
+              className="text-[13px] flex items-center w-full"
+            >
+              <ForwardedIconComponent name="Sparkles" className="text-blue-500" />
+              <span className="ml-2">AI Flow Copilot</span>
+            </SidebarMenuButton>
+            
             <SidebarMenuButton
               isActive={checkPathFiles}
               onClick={() => handleFilesClick?.()}

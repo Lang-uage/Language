@@ -17,7 +17,6 @@ import { useFolderStore } from "@/stores/foldersStore";
 import { useEffect, useRef, useState } from "react";
 import { AccountMenu } from "./components/AccountMenu";
 import FlowMenu from "./components/FlowMenu";
-import LangflowCounts from "./components/langflow-counts";
 
 export default function AppHeader(): JSX.Element {
   const notificationCenter = useAlertStore((state) => state.notificationCenter);
@@ -96,19 +95,24 @@ export default function AppHeader(): JSX.Element {
         className={`relative left-3 z-30 flex items-center gap-2`}
         data-testid="header_right_section_wrapper"
       >
-        {!ENABLE_DATASTAX_LANGFLOW && (
-          <>
-            <Button
-              unstyled
-              className="hidden items-center whitespace-nowrap pr-2 2xl:inline"
-              onClick={() =>
-                window.open("https://github.com/langflow-ai/langflow", "_blank")
-              }
-            >
-              <LangflowCounts />
-            </Button>
-          </>
-        )}
+        {/* Copilot Button */}
+        <ShadTooltip content="AI Copilot" side="bottom" styleClasses="z-10">
+          <Button
+            variant="ghost"
+            className="flex text-sm font-medium"
+            onClick={() => navigate("/copilot")}
+            data-testid="copilot_button"
+          >
+            <ForwardedIconComponent
+              name="Sparkles"
+              className="side-bar-button-size h-[18px] w-[18px] text-blue-500"
+            />
+            <span className="hidden whitespace-nowrap 2xl:inline">
+              Copilot
+            </span>
+          </Button>
+        </ShadTooltip>
+
         <AlertDropdown
           notificationRef={notificationContentRef}
           onClose={() => setActiveState(null)}

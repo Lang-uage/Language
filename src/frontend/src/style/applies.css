@@ -245,7 +245,22 @@
     @apply flex gap-2;
   }
   .flow-page-positioning {
-    @apply h-full w-full overflow-hidden;
+    @apply h-full w-full overflow-hidden bg-gradient-to-br from-background via-background to-background/90 shadow-lg;
+  }
+  .flow-header {
+    @apply flex items-center justify-between py-2 px-4 bg-gradient-to-r from-background/90 to-background border-b border-b-border/40 backdrop-blur-sm;
+  }
+  .flow-content {
+    @apply h-full w-full relative transition-all duration-300 ease-in-out;
+  }
+  .flow-canvas {
+    @apply h-full w-full rounded-md overflow-hidden border border-border/10 shadow-sm;
+  }
+  .flow-node {
+    @apply transition-transform duration-200 ease-in-out hover:scale-[1.02] shadow-md hover:shadow-lg;
+  }
+  .flow-edge {
+    @apply transition-opacity duration-300 opacity-80 hover:opacity-100;
   }
   .langflow-page-icon {
     @apply absolute bottom-2 left-7 flex h-6 cursor-pointer flex-col items-center justify-start overflow-hidden rounded-lg bg-foreground px-2 text-center font-sans text-xs tracking-wide text-secondary transition-all duration-500 ease-in-out;
@@ -1291,6 +1306,122 @@
     --tw-ring-shadow: none !important;
     --tw-ring-offset-shadow: none !important;
     --tw-ring-color: none !important;
+  }
+
+  .bg-grid-pattern {
+    @apply bg-background;
+    background-image: radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.05) 1px, transparent 0);
+    background-size: 20px 20px;
+  }
+
+  .dark .bg-grid-pattern {
+    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.08) 1px, transparent 0);
+  }
+
+  /* Chatbot UI Styles */
+  .chatbot-toggle-btn {
+    box-shadow: 0 10px 25px -5px rgba(60, 168, 133, 0.4);
+    transition: all 0.3s ease;
+  }
+
+  .chatbot-toggle-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 35px -5px rgba(60, 168, 133, 0.45);
+  }
+
+  .chatbot-container {
+    box-shadow: 
+      0 10px 25px rgba(0, 0, 0, 0.1),
+      0 5px 10px rgba(0, 0, 0, 0.05);
+  }
+
+  .dark .chatbot-container {
+    box-shadow: 
+      0 10px 25px rgba(0, 0, 0, 0.3),
+      0 5px 10px rgba(0, 0, 0, 0.2);
+  }
+
+  .messages-container::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .messages-container::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .messages-container::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-zinc-700 rounded-full;
+  }
+
+  .message {
+    max-width: 100%;
+  }
+
+  .user-message {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .system-message {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  /* Pulse animation for the chat button */
+  @keyframes pulse-chat {
+    0% {
+      box-shadow: 0 0 0 0 rgba(60, 168, 133, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(60, 168, 133, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(60, 168, 133, 0);
+    }
+  }
+
+  .pulse-animation {
+    animation: pulse-chat 2s infinite;
+  }
+
+  /* Typing indicator animation */
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .typing-indicator span {
+    @apply bg-gray-400 dark:bg-gray-600;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .typing-indicator span:nth-child(1) {
+    animation: typing 1s infinite 0.1s;
+  }
+
+  .typing-indicator span:nth-child(2) {
+    animation: typing 1s infinite 0.2s;
+  }
+
+  .typing-indicator span:nth-child(3) {
+    animation: typing 1s infinite 0.3s;
+  }
+
+  @keyframes typing {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
   }
 }
 

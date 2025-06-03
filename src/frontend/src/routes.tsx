@@ -26,6 +26,7 @@ import LoginPage from "./pages/LoginPage";
 import FilesPage from "./pages/MainPage/pages/filesPage";
 import HomePage from "./pages/MainPage/pages/homePage";
 import CollectionPage from "./pages/MainPage/pages/main-page";
+import CopilotPage from "./pages/CopilotPage";
 import SettingsPage from "./pages/SettingsPage";
 import ApiKeysPage from "./pages/SettingsPage/pages/ApiKeysPage";
 import GeneralPage from "./pages/SettingsPage/pages/GeneralPage";
@@ -110,6 +111,7 @@ const router = createBrowserRouter(
                       element={<HomePage key="flows" type="flows" />}
                     />
                   </Route>
+                  <Route path="copilot" element={<CopilotPage />} />
                 </Route>
                 <Route path="settings" element={<SettingsPage />}>
                   <Route
