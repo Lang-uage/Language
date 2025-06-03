@@ -67,15 +67,21 @@ services:
         - traefik.http.routers.${STACK_NAME?Variable not set}-proxy-http.middlewares=${STACK_NAME?Variable not set}-www-redirect,${STACK_NAME?Variable not set}-https-redirect
 
   backend: &backend
-    image: "langflowai/langflow-backend:latest"
+    image: "langflowai/langflow:latest"
     depends_on:
       - db
       - broker
       - result_backend
     env_file:
       - .env
+    environment:
+      - LANGFLOW_DATABASE_URL=postgresql://${DB_USER:-langflow}:${DB_PASSWORD:-langflow}@db:5432/${DB_NAME:-langflow}
+      - LANGFLOW_CONFIG_DIR=/app/langflow
     healthcheck:
-      test: "exit 0"
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     deploy:
       labels:
         - traefik.enable=true
@@ -134,9 +140,15 @@ services:
     <<: *backend
     env_file:
       - .env
+    environment:
+      - LANGFLOW_DATABASE_URL=postgresql://${DB_USER:-langflow}:${DB_PASSWORD:-langflow}@db:5432/${DB_NAME:-langflow}
+      - C_FORCE_ROOT=true
     command: /bin/sh -c "python -m celery -A langflow.worker.celery_app worker --loglevel=INFO --concurrency=1 -n lf-worker@%h -P eventlet"
     healthcheck:
-      test: "exit 0"
+      test: ["CMD", "python", "-c", "import celery; exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     deploy:
       replicas: 1
 
@@ -165,16 +177,22 @@ services:
         - traefik.http.services.${STACK_NAME?Variable not set}-flower.loadbalancer.server.port=5555
 
   frontend:
-    image: "langflowai/langflow-frontend:latest"
+    image: "langflowai/langflow:latest"
     env_file:
       - .env
+    environment:
+      - BACKEND_URL=http://backend:7860
+      - LANGFLOW_DATABASE_URL=postgresql://${DB_USER:-langflow}:${DB_PASSWORD:-langflow}@db:5432/${DB_NAME:-langflow}
+    depends_on:
+      backend:
+        condition: service_healthy
     restart: on-failure
     deploy:
       labels:
         - traefik.enable=true
         - traefik.constraint-label-stack=${TRAEFIK_TAG?Variable not set}
         - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.rule=PathPrefix(`/`)
-        - traefik.http.services.${STACK_NAME?Variable not set}-frontend.loadbalancer.server.port=80
+        - traefik.http.services.${STACK_NAME?Variable not set}-frontend.loadbalancer.server.port=7860
 
   broker:
     # RabbitMQ management console

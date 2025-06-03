@@ -1,0 +1,90 @@
+services:
+  proxy:
+    image: traefik:v3.0
+    env_file:
+      - .env
+    networks:
+      - ${TRAEFIK_PUBLIC_NETWORK:-traefik-public}
+      - default
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      # Enable Docker in Traefik, so that it reads labels from Docker services
+      - --providers.docker
+      # Add a constraint to only use services with the label for this stack
+      - --providers.docker.constraints=Label(`traefik.constraint-label-stack`, `${TRAEFIK_TAG:-langflow}`)
+      # Do not expose all Docker services, only the ones explicitly exposed
+      - --providers.docker.exposedbydefault=false
+      # Enable the access log, with HTTP requests
+      - --accesslog
+      # Enable the Traefik log, for configurations and errors
+      - --log
+      # Enable the Dashboard and API
+      - --api
+    ports:
+      - "80:80"
+      - "443:443"
+    deploy:
+      labels:
+        # Enable Traefik for this service, to make it available in the public network
+        - traefik.enable=true
+        # Use the traefik-public network (declared below)
+        - traefik.docker.network=${TRAEFIK_PUBLIC_NETWORK:-traefik-public}
+        # traefik-http set up only to use the middleware to redirect to https
+        - traefik.http.middlewares.${STACK_NAME:-langflow}-https-redirect.redirectscheme.scheme=https
+        - traefik.http.middlewares.${STACK_NAME:-langflow}-https-redirect.redirectscheme.permanent=true
+        # Handle host with and without "www" to redirect to only one of them
+        - traefik.http.routers.${STACK_NAME:-langflow}-proxy-http.rule=Host(`${DOMAIN:-localhost}`) || Host(`www.${DOMAIN:-localhost}`)
+        - traefik.http.routers.${STACK_NAME:-langflow}-proxy-http.entrypoints=http
+        # traefik-https the actual router using HTTPS
+        - traefik.http.routers.${STACK_NAME:-langflow}-proxy-https.rule=Host(`${DOMAIN:-localhost}`) || Host(`www.${DOMAIN:-localhost}`)
+        - traefik.http.routers.${STACK_NAME:-langflow}-proxy-https.entrypoints=https
+        - traefik.http.routers.${STACK_NAME:-langflow}-proxy-https.tls=true
+        # Define the port inside of the Docker service to use
+        - traefik.http.services.${STACK_NAME:-langflow}-proxy.loadbalancer.server.port=80
+
+  langflow:
+    image: "langflowai/langflow:latest"
+    env_file:
+      - .env
+    environment:
+      # Use SQLite database (default)
+      - LANGFLOW_DATABASE_URL=sqlite:///./langflow.db
+      # Use memory cache instead of Redis
+      - LANGFLOW_CACHE_TYPE=memory
+      # Disable Celery for simplicity
+      - LANGFLOW_WORKERS=1
+      - LANGFLOW_WORKER_TIMEOUT=300
+      # Auto login for simplicity
+      - LANGFLOW_AUTO_LOGIN=${LANGFLOW_AUTO_LOGIN:-true}
+      # Create superuser
+      - LANGFLOW_SUPERUSER=${LANGFLOW_SUPERUSER:-admin}
+      - LANGFLOW_SUPERUSER_PASSWORD=${LANGFLOW_SUPERUSER_PASSWORD:-admin}
+      - LANGFLOW_SECRET_KEY=${LANGFLOW_SECRET_KEY:-langflow-secret-key}
+    ports:
+      - "7860:7860"
+    volumes:
+      - langflow-data:/app/langflow
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.constraint-label-stack=${TRAEFIK_TAG:-langflow}
+        - traefik.http.routers.${STACK_NAME:-langflow}-http.rule=Host(`${DOMAIN:-localhost}`)
+        - traefik.http.routers.${STACK_NAME:-langflow}-http.entrypoints=http
+        - traefik.http.routers.${STACK_NAME:-langflow}-https.rule=Host(`${DOMAIN:-localhost}`)
+        - traefik.http.routers.${STACK_NAME:-langflow}-https.entrypoints=https
+        - traefik.http.routers.${STACK_NAME:-langflow}-https.tls=true
+        - traefik.http.services.${STACK_NAME:-langflow}.loadbalancer.server.port=7860
+
+volumes:
+  langflow-data:
+
+networks:
+  traefik-public:
+    external: false 
