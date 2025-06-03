@@ -45,22 +45,24 @@ COPY --from=frontend_build /app/frontend/build /app/frontend/build
 RUN mkdir -p /app/flows /app/langflow-config-dir
 
 # Create startup script that uses PORT environment variable
-RUN echo '#!/bin/bash \
-set -e \
-\
-# Use PORT environment variable from DigitalOcean (defaults to 8080) \
-export PORT=${PORT:-8080} \
-\
-# Set production environment variables \
-export LANGFLOW_AUTO_LOGIN=${LANGFLOW_AUTO_LOGIN:-false} \
-export LANGFLOW_SUPERUSER=${LANGFLOW_SUPERUSER:-admin} \
-export LANGFLOW_DATABASE_URL=${DATABASE_URL:-sqlite:///./langflow.db} \
-export LANGFLOW_SECRET_KEY=${LANGFLOW_SECRET_KEY:-$(openssl rand -base64 32)} \
-export LANGFLOW_CACHE_TYPE=${LANGFLOW_CACHE_TYPE:-memory} \
-\
-echo "Starting Langflow on port $PORT with frontend..." \
-langflow run --host 0.0.0.0 --port $PORT --frontend-path /app/frontend/build \
-' > /start.sh && chmod +x /start.sh
+RUN bash -c 'cat > /start.sh << "EOF"
+#!/bin/bash
+set -e
+
+# Use PORT environment variable from DigitalOcean (defaults to 8080)
+PORT=${PORT:-8080}
+
+# Optional environment variables (already provided via App Platform dashboard)
+export LANGFLOW_AUTO_LOGIN=${LANGFLOW_AUTO_LOGIN:-false}
+export LANGFLOW_SUPERUSER=${LANGFLOW_SUPERUSER:-admin}
+export LANGFLOW_DATABASE_URL=${DATABASE_URL:-sqlite:///./langflow.db}
+export LANGFLOW_SECRET_KEY=${LANGFLOW_SECRET_KEY:-changeme}
+export LANGFLOW_CACHE_TYPE=${LANGFLOW_CACHE_TYPE:-memory}
+
+echo "Starting Langflow on port $PORT with frontend..."
+exec langflow run --host 0.0.0.0 --port "$PORT" --frontend-path /app/frontend/build
+EOF'
+RUN chmod +x /start.sh
 
 # Expose the port (DigitalOcean will set the PORT env var)
 EXPOSE 8080
