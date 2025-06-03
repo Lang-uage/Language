@@ -1,0 +1,38 @@
+name: langflow-fullstack
+services:
+- name: web
+  source_dir: /
+  dockerfile_path: Dockerfile.production
+  github:
+    repo: Lang-uage/Language
+    branch: chat-ui
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  http_port: 8080
+  env:
+  - key: LANGFLOW_AUTO_LOGIN
+    value: "false"
+  - key: LANGFLOW_SUPERUSER
+    value: "admin"
+  - key: LANGFLOW_CACHE_TYPE
+    value: "memory"
+  # Add your secret key here or use DigitalOcean's secrets
+  - key: LANGFLOW_SECRET_KEY
+    value: "your-production-secret-key-here"
+
+# Optional: Add a managed database
+# databases:
+# - name: langflow-db
+#   engine: PG
+#   version: "15"
+#   size: db-s-dev-database
+
+# Optional: Add a Redis cache
+# services:
+# - name: redis
+#   image:
+#     registry_type: DOCKER_HUB
+#     repository: redis
+#     tag: "7-alpine"
+#   instance_count: 1
+#   instance_size_slug: basic-xxs 
